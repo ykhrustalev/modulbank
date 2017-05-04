@@ -52,7 +52,7 @@ func (client *Client) buildUrl(path string) string {
 func (client *Client) buildRequest(logger *logrus.Entry, method, path string, data interface{}) (*http.Request, error) {
 	var reqData io.Reader
 
-	if data != nil {
+	if data == nil {
 		reqData = nil
 	} else {
 		b, err := json.Marshal(data)
@@ -128,12 +128,14 @@ func (client *Client) closeBody(resp *http.Response) {
 	}
 }
 
-// Requires
-// account-info
-func (client *Client) V1AccountInfo() ([]AccountInfo, error) {
-	logger := client.logger.WithField("method", "V1AccountInfo")
+func (client *Client) handleRequest(
+	logger *logrus.Entry,
+	method, path string,
+	reqData interface{},
+	result interface{},
+) (*http.Response, error) {
 
-	req, err := client.buildRequest(logger, "POST", "/v1/account-info", nil)
+	req, err := client.buildRequest(logger, method, path, reqData)
 	if err != nil {
 		return nil, err
 	}
@@ -144,11 +146,10 @@ func (client *Client) V1AccountInfo() ([]AccountInfo, error) {
 		return nil, err
 	}
 
-	var result []AccountInfo
 	err = client.decodeBody(logger, resp.Body, &result)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	return resp, nil
 }
