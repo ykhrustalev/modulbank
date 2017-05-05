@@ -3,11 +3,23 @@ package modulbank
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
 
 const DateFormat = "2006-01-02T15:04:05"
+
+// API returns all dates in MSK timezone without offset
+var MskLocation *time.Location
+
+func init() {
+	var err error
+	MskLocation, err = time.LoadLocation("Europe/Moscow")
+	if err != nil {
+		log.Printf("Can't parse Moscow timezone, %v", err)
+	}
+}
 
 type AccountInfo struct {
 	CompanyId    string        `json:"companyId"`
@@ -203,7 +215,7 @@ func (acc *BankAccount) UnmarshalJSON(b []byte) error {
 	acc.BankKpp = aux.BankKpp
 	acc.BankCorrespondentAccount = aux.BankCorrespondentAccount
 	acc.BankName = aux.BankName
-	acc.BeginDate, err = time.Parse(DateFormat, aux.BeginDate)
+	acc.BeginDate, err = time.ParseInLocation(DateFormat, aux.BeginDate, MskLocation)
 	if err != nil {
 		return err
 	}
@@ -234,7 +246,7 @@ func (acc *BankAccount) MarshalJSON() ([]byte, error) {
 		BankKpp:                  acc.BankKpp,
 		BankCorrespondentAccount: acc.BankCorrespondentAccount,
 		BankName:                 acc.BankName,
-		BeginDate:                acc.BeginDate.Format(DateFormat),
+		BeginDate:                acc.BeginDate.In(MskLocation).Format(DateFormat),
 		Category:                 acc.Category.String(),
 		Currency:                 acc.Currency.String(),
 		Number:                   acc.Number,
@@ -300,10 +312,10 @@ func (search *OperationHistorySearch) MarshalJSON() ([]byte, error) {
 		aux.Category = search.Category.String()
 	}
 	if search.From != nil {
-		aux.Category = search.From.Format(DateFormat)
+		aux.Category = search.From.In(MskLocation).Format(DateFormat)
 	}
 	if search.Till != nil {
-		aux.Category = search.Till.Format(DateFormat)
+		aux.Category = search.Till.In(MskLocation).Format(DateFormat)
 	}
 	if search.Skip != 0 {
 		aux.Skip = search.Skip
@@ -450,11 +462,11 @@ func (operation *Operation) UnmarshalJSON(b []byte) error {
 	operation.AmountWithCommission = aux.AmountWithCommission
 	operation.BankAccountNumber = aux.BankAccountNumber
 	operation.PaymentPurpose = aux.PaymentPurpose
-	operation.Executed, err = time.Parse(DateFormat, aux.Executed)
+	operation.Executed, err = time.ParseInLocation(DateFormat, aux.Executed, MskLocation)
 	if err != nil {
 		return err
 	}
-	operation.Created, err = time.Parse(DateFormat, aux.Created)
+	operation.Created, err = time.ParseInLocation(DateFormat, aux.Created, MskLocation)
 	if err != nil {
 		return err
 	}
@@ -488,8 +500,8 @@ func (operation *Operation) MarshalJSON() ([]byte, error) {
 		AmountWithCommission:        operation.AmountWithCommission,
 		BankAccountNumber:           operation.BankAccountNumber,
 		PaymentPurpose:              operation.PaymentPurpose,
-		Executed:                    operation.Executed.Format(DateFormat),
-		Created:                     operation.Created.Format(DateFormat),
+		Executed:                    operation.Executed.In(MskLocation).Format(DateFormat),
+		Created:                     operation.Created.In(MskLocation).Format(DateFormat),
 		DocNumber:                   operation.DocNumber,
 		Kbk:                         operation.Kbk,
 		Oktmo:                       operation.Oktmo,
